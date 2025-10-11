@@ -32,6 +32,7 @@ export function useOfflineSync() {
       // Trigger background sync if available
       if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
         const registration = await navigator.serviceWorker.ready;
+        // @ts-ignore - Background Sync API
         await registration.sync.register('sync-documents');
       }
     } catch (error) {

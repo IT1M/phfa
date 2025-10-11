@@ -222,7 +222,7 @@ export default function AnalyticsPage() {
                 Growth Rate
               </p>
               <p className="text-2xl font-bold text-green-600">
-                {trends?.visitors?.length > 1
+                {trends?.visitors && trends.visitors.length > 1
                   ? `+${(((trends.visitors[trends.visitors.length - 1]?.count || 0) / (trends.visitors[0]?.count || 1) - 1) * 100).toFixed(1)}%`
                   : 'N/A'}
               </p>

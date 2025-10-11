@@ -241,7 +241,7 @@ const integrationSlice = createSlice({
       })
       .addCase(fetchMOHPatient.fulfilled, (state, action) => {
         state.mohLoading = false;
-        state.mohPatient = action.payload;
+        state.mohPatient = action.payload || null;
       })
       .addCase(fetchMOHPatient.rejected, (state, action) => {
         state.mohLoading = false;
@@ -256,14 +256,14 @@ const integrationSlice = createSlice({
       })
       .addCase(fetchHISPatient.fulfilled, (state, action) => {
         state.hisLoading = false;
-        state.hisPatient = action.payload;
+        state.hisPatient = action.payload || null;
       })
       .addCase(fetchHISPatient.rejected, (state, action) => {
         state.hisLoading = false;
         state.hisError = action.error.message || 'فشل في جلب سجل المريض';
       })
       .addCase(fetchActiveAdmissions.fulfilled, (state, action) => {
-        state.activeAdmissions = action.payload;
+        state.activeAdmissions = action.payload || [];
       });
 
     // LIS
@@ -274,14 +274,16 @@ const integrationSlice = createSlice({
       })
       .addCase(fetchPendingTests.fulfilled, (state, action) => {
         state.lisLoading = false;
-        state.pendingTests = action.payload;
+        state.pendingTests = action.payload || [];
       })
       .addCase(fetchPendingTests.rejected, (state, action) => {
         state.lisLoading = false;
         state.lisError = action.error.message || 'فشل في جلب الفحوصات';
       })
       .addCase(orderLabTest.fulfilled, (state, action) => {
-        state.labTests.push(action.payload);
+        if (action.payload) {
+          state.labTests.push(action.payload);
+        }
       });
 
     // Pharmacy
@@ -292,7 +294,7 @@ const integrationSlice = createSlice({
       })
       .addCase(fetchPatientMedications.fulfilled, (state, action) => {
         state.pharmacyLoading = false;
-        state.prescriptions = action.payload;
+        state.prescriptions = action.payload || [];
       })
       .addCase(fetchPatientMedications.rejected, (state, action) => {
         state.pharmacyLoading = false;

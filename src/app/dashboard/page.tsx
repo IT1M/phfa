@@ -141,7 +141,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -233,7 +233,7 @@ export default function DashboardPage() {
           )}>
             {t.recentDocs}
           </h2>
-          
+
           {mockDocuments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {mockDocuments.map((doc) => (

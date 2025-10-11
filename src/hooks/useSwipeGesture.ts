@@ -20,18 +20,18 @@ export function useSwipeGesture(config: SwipeConfig) {
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const touchEnd = useRef<{ x: number; y: number } | null>(null);
 
-  const handleTouchStart = (e: TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     touchEnd.current = null;
     touchStart.current = {
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY,
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
     };
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     touchEnd.current = {
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY,
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
     };
   };
 
