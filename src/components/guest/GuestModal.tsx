@@ -4,13 +4,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Shield } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks';
-import { closeGuestModal, setGuestUser } from '@/store/slices/guestSlice';
+import { setGuestUser } from '@/store/slices/guestSlice';
 import { validateEmail, generateSessionId, getSessionExpiry } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
-export default function GuestModal() {
+interface GuestModalProps {
+  onClose: () => void;
+}
+
+export default function GuestModal({ onClose }: GuestModalProps) {
   const dispatch = useAppDispatch();
-  const { isModalOpen } = useAppSelector(state => state.guest);
   const { locale } = useAppSelector(state => state.theme);
   
   const [email, setEmail] = useState('');
@@ -68,7 +71,7 @@ export default function GuestModal() {
       };
 
       dispatch(setGuestUser(guestUser));
-      dispatch(closeGuestModal());
+      onClose();
       setIsSubmitting(false);
       
       // Redirect to dashboard
@@ -77,32 +80,30 @@ export default function GuestModal() {
   };
 
   return (
-    <AnimatePresence>
-      {isModalOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => dispatch(closeGuestModal())}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className={cn(
+          "bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-8 relative",
+          locale === 'ar' && "font-arabic"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 end-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          aria-label="Close"
         >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className={cn(
-              "bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-8 relative",
-              locale === 'ar' && "font-arabic"
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => dispatch(closeGuestModal())}
-              className="absolute top-4 end-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              aria-label="Close"
-            >
-              <X size={24} />
-            </button>
+          <X size={24} />
+        </button>
 
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-saudi-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -172,7 +173,5 @@ export default function GuestModal() {
             </form>
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
   );
 }

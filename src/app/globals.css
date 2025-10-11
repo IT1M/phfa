@@ -12,8 +12,12 @@
   }
 
   body {
-    @apply bg-white text-gray-900;
+    @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-white;
     touch-action: manipulation;
+  }
+
+  .font-arabic {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
 }
 

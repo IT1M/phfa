@@ -1,0 +1,533 @@
+openapi: 3.0.0
+info:
+  title: Healthcare Integration API
+  version: 1.0.0
+  description: |
+    API for integrating with external healthcare systems including MOH, HIS, LIS, and Pharmacy systems.
+    
+    ## Authentication
+    All endpoints require JWT authentication via Bearer token in the Authorization header.
+    
+    ## Rate Limiting
+    - Guest users: 10 requests/minute
+    - Authenticated users: 100 requests/minute
+    - Admin users: 500 requests/minute
+    
+    ## Webhooks
+    Subscribe to events using webhook endpoints. All webhook payloads include HMAC-SHA256 signature.
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://api.healthcare.sa/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    IntegrationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        error:
+          type: string
+        statusCode:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    MOHPatientData:
+      type: object
+      properties:
+        nationalId:
+          type: string
+        name:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [male, female]
+        insuranceNumber:
+          type: string
+        medicalHistory:
+          type: array
+          items:
+            type: object
+
+    HISPatientRecord:
+      type: object
+      properties:
+        patientId:
+          type: string
+        admissionDate:
+          type: string
+          format: date-time
+        dischargeDate:
+          type: string
+          format: date-time
+        department:
+          type: string
+        diagnosis:
+          type: array
+          items:
+            type: string
+        procedures:
+          type: array
+          items:
+            type: string
+        medications:
+          type: array
+          items:
+            type: object
+
+    LISTestResult:
+      type: object
+      properties:
+        testId:
+          type: string
+        patientId:
+          type: string
+        testType:
+          type: string
+        results:
+          type: object
+        performedDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, completed, cancelled]
+
+    PharmacyOrder:
+      type: object
+      properties:
+        orderId:
+          type: string
+        patientId:
+          type: string
+        medications:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              dosage:
+                type: string
+              quantity:
+                type: integer
+              instructions:
+                type: string
+        prescribedBy:
+          type: string
+        status:
+          type: string
+          enum: [pending, filled, cancelled]
+
+    WebhookConfig:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - document.processed
+              - visitor.registered
+              - search.query
+              - system.health
+              - export.completed
+              - integration.error
+        enabled:
+          type: boolean
+        retryAttempts:
+          type: integer
+          minimum: 1
+          maximum: 5
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  /integrations/test:
+    get:
+      summary: Test all integration connections
+      tags:
+        - Integrations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Connection test results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  results:
+                    type: object
+                    properties:
+                      moh:
+                        type: boolean
+                      his:
+                        type: boolean
+                      lis:
+                        type: boolean
+                      pharmacy:
+                        type: boolean
+
+  /integrations/moh/patient/{nationalId}:
+    get:
+      summary: Get patient data from MOH
+      tags:
+        - MOH Integration
+      parameters:
+        - name: nationalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient data retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/IntegrationResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MOHPatientData'
+
+  /integrations/moh/insurance/verify:
+    post:
+      summary: Verify patient insurance
+      tags:
+        - MOH Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nationalId:
+                  type: string
+                insuranceNumber:
+                  type: string
+      responses:
+        '200':
+          description: Insurance verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationResponse'
+
+  /integrations/his/patient/{patientId}:
+    get:
+      summary: Get patient record from HIS
+      tags:
+        - HIS Integration
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient record retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/IntegrationResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HISPatientRecord'
+
+  /integrations/his/admission:
+    post:
+      summary: Create patient admission
+      tags:
+        - HIS Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - patientId
+                - department
+                - admittingPhysician
+                - diagnosis
+              properties:
+                patientId:
+                  type: string
+                department:
+                  type: string
+                admittingPhysician:
+                  type: string
+                diagnosis:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Admission created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationResponse'
+
+  /integrations/lis/order:
+    post:
+      summary: Order laboratory test
+      tags:
+        - LIS Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - patientId
+                - testType
+                - orderedBy
+                - priority
+              properties:
+                patientId:
+                  type: string
+                testType:
+                  type: string
+                orderedBy:
+                  type: string
+                priority:
+                  type: string
+                  enum: [routine, urgent, stat]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Test ordered
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/IntegrationResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LISTestResult'
+
+  /integrations/lis/results/{testId}:
+    get:
+      summary: Get laboratory test results
+      tags:
+        - LIS Integration
+      parameters:
+        - name: testId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test results retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/IntegrationResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LISTestResult'
+
+  /integrations/pharmacy/prescription:
+    post:
+      summary: Create prescription
+      tags:
+        - Pharmacy Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - patientId
+                - prescribedBy
+                - medications
+              properties:
+                patientId:
+                  type: string
+                prescribedBy:
+                  type: string
+                medications:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      dosage:
+                        type: string
+                      quantity:
+                        type: integer
+                      instructions:
+                        type: string
+                      duration:
+                        type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Prescription created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/IntegrationResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PharmacyOrder'
+
+  /integrations/pharmacy/interactions:
+    post:
+      summary: Check drug interactions
+      tags:
+        - Pharmacy Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                medications:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Interaction check results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationResponse'
+
+  /integrations/webhooks:
+    get:
+      summary: List all webhooks
+      tags:
+        - Webhooks
+      responses:
+        '200':
+          description: Webhook list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  webhooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookConfig'
+    post:
+      summary: Register new webhook
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookConfig'
+      responses:
+        '200':
+          description: Webhook registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  webhookId:
+                    type: string
+
+  /integrations/webhooks/{id}:
+    delete:
+      summary: Unregister webhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Webhook unregistered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /integrations/webhooks/{id}/logs:
+    get:
+      summary: Get webhook delivery logs
+      tags:
+        - Webhooks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Webhook logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  logs:
+                    type: array
+                    items:
+                      type: object

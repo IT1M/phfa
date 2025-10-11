@@ -11,6 +11,10 @@ import { ScheduledExportService } from './services/scheduledExportService';
 import { BackupService } from './services/backupService';
 import { MonitoringService } from './services/monitoringService';
 import { exportConfig } from './config/export.config';
+import { setupSwagger } from './config/swagger.config';
+import { pool } from './config/database';
+import { IntegrationManager } from './integrations/integration-manager.service';
+import { createIntegrationRoutes } from './routes/integrations';
 import authRoutes from './routes/auth';
 import visitorRoutes from './routes/visitors';
 import documentRoutes from './routes/documents';
@@ -32,6 +36,12 @@ app.use(cors({ origin: process.env.CORS_ORIGIN }));
 app.use(express.json());
 app.use(auditLog);
 
+// Setup Swagger documentation
+setupSwagger(app);
+
+// Initialize integration manager
+const integrationManager = new IntegrationManager(pool);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/documents', documentRoutes);
@@ -42,6 +52,7 @@ app.use('/api/document-processor', documentProcessorRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/integrations', createIntegrationRoutes(integrationManager));
 
 app.use('/graphql', graphqlHTTP((req: any) => ({
   schema,
@@ -61,6 +72,7 @@ app.listen(PORT, async () => {
   logger.info(`Server running on port ${PORT}`);
   console.log(`🚀 Server ready at http://localhost:${PORT}`);
   console.log(`📊 GraphQL endpoint: http://localhost:${PORT}/graphql`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
 
   // Initialize scheduled export service
   if (exportConfig.schedule.enabled) {

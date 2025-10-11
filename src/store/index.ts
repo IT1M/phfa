@@ -3,6 +3,7 @@ import guestReducer from './slices/guestSlice';
 import themeReducer from './slices/themeSlice';
 import searchReducer from './slices/searchSlice';
 import documentsReducer from './slices/documentsSlice';
+import integrationReducer from './slices/integrationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     theme: themeReducer,
     search: searchReducer,
     documents: documentsReducer,
+    integration: integrationReducer,
   },
 });
 
